@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบสำนวนดิจิทัลอัจฉริยะ | AI-Powered Paperless Workflow</title>
+<style>
+  :root{
+    --blue:#1e5eb8; --blue-dark:#14417f; --blue-light:#e8f1fc;
+    --green:#1f9d6b; --green-light:#e4f6ee;
+    --orange:#e8892b; --orange-light:#fdf1e3;
+    --red:#d0455a; --red-light:#fce8eb;
+    --grey:#5b6b7f; --grey-light:#f4f7fb; --border:#dbe4ef;
+    --ink:#1d2b3a; --bg:#f0f5fb; --white:#fff;
+    --shadow:0 2px 10px rgba(30,94,184,.08);
+    --shadow-lg:0 8px 28px rgba(20,65,127,.16);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"Sarabun","Segoe UI",system-ui,-apple-system,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.55; font-size:15px;
+  }
+  /* Header */
+  header{
+    background:linear-gradient(100deg,var(--blue-dark),var(--blue));
+    color:#fff; padding:14px 22px; display:flex; align-items:center;
+    gap:16px; position:sticky; top:0; z-index:50; box-shadow:var(--shadow-lg);
+  }
+  .logo{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+  .logo .mark{
+    width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.16);
+    display:grid;place-items:center;font-size:22px;flex-shrink:0;
+  }
+  .logo h1{font-size:17px;font-weight:700;line-height:1.2}
+  .logo span{font-size:11.5px;opacity:.82;font-weight:400}
+  .role-switch{display:flex;align-items:center;gap:8px;flex-shrink:0}
+  .role-switch label{font-size:12px;opacity:.85}
+  .role-switch select{
+    padding:8px 12px;border-radius:9px;border:none;font-family:inherit;
+    font-size:13.5px;font-weight:600;background:#fff;color:var(--blue-dark);
+    cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.14);
+  }
+  /* Nav tabs */
+  nav{
+    background:#fff;border-bottom:1px solid var(--border);padding:0 18px;
+    display:flex;gap:4px;overflow-x:auto;position:sticky;top:70px;z-index:40;
+    box-shadow:var(--shadow);
+  }
+  nav button{
+    padding:13px 15px;border:none;background:none;font-family:inherit;
+    font-size:14px;color:var(--grey);cursor:pointer;border-bottom:3px solid transparent;
+    white-space:nowrap;font-weight:600;transition:.15s;
+  }
+  nav button:hover{color:var(--blue)}
+  nav button.active{color:var(--blue);border-bottom-color:var(--blue)}
+  nav button .en{font-size:10.5px;font-weight:400;display:block;opacity:.7}
+  /* Layout */
+  main{max-width:1180px;margin:0 auto;padding:22px 18px 90px}
+  .page{display:none;animation:fade .25s ease}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  h2.page-title{font-size:21px;margin-bottom:4px;color:var(--blue-dark)}
+  h2.page-title .en{font-size:12px;color:var(--grey);font-weight:400;margin-left:6px}
+  .page-sub{color:var(--grey);font-size:13.5px;margin-bottom:20px}
+  /* Cards */
+  .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+  .card h3{font-size:16px;margin-bottom:12px;color:var(--blue-dark);display:flex;align-items:center;gap:8px}
+  .grid{display:grid;gap:16px}
+  .grid-3{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .grid-4{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  /* Buttons */
+  .btn{
+    padding:10px 18px;border-radius:10px;border:none;font-family:inherit;font-size:14px;
+    font-weight:600;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px;
+  }
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:hover{background:var(--blue-dark)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover{filter:brightness(.94)}
+  .btn-orange{background:var(--orange);color:#fff}
+  .btn-orange:hover{filter:brightness(.94)}
+  .btn-red{background:var(--red);color:#fff}
+  .btn-red:hover{filter:brightness(.94)}
+  .btn-ghost{background:var(--blue-light);color:var(--blue-dark)}
+  .btn-ghost:hover{background:#d8e8fb}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-sm{padding:6px 12px;font-size:12.5px}
+  /* Badges */
+  .badge{padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .b-draft{background:#eceff3;color:#5b6b7f}
+  .b-submitted{background:var(--blue-light);color:var(--blue-dark)}
+  .b-review{background:var(--orange-light);color:#b8641a}
+  .b-approved{background:var(--green-light);color:#157a51}
+  .b-rejected{background:var(--red-light);color:#b0364a}
+  .b-stp{background:#e9e2fb;color:#6b3fbf}
+  .b-high{background:var(--red-light);color:#b0364a}
+  .b-normal{background:var(--blue-light);color:var(--blue-dark)}
+  .b-low{background:#eceff3;color:#5b6b7f}
+  /* Templates */
+  .tpl{border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:.15s;text-align:center;background:#fff}
+  .tpl:hover{border-color:var(--blue);transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+  .tpl.sel{border-color:var(--blue);background:var(--blue-light)}
+  .tpl .ico{font-size:40px;margin-bottom:8px}
+  .tpl h4{font-size:15px;color:var(--blue-dark)}
+  .tpl p{font-size:11.5px;color:var(--grey);margin-top:3px}
+  /* Form */
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--ink)}
+  .field input,.field textarea,.field select{
+    width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:9px;
+    font-family:inherit;font-size:14px;color:var(--ink);background:#fbfdff;
+  }
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--blue);background:#fff}
+  /* Signature box */
+  .sig-box{border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;background:var(--grey-light)}
+  .sig-done{border:2px solid var(--green);background:var(--green-light);text-align:left}
+  .sig-hash{font-family:ui-monospace,monospace;font-size:11px;color:var(--green);word-break:break-all;background:#fff;padding:8px 10px;border-radius:7px;margin-top:8px;border:1px solid #cdeeddff}
+  .shield{display:inline-flex;align-items:center;gap:7px;color:var(--green);font-weight:700;font-size:15px}
+  /* Timeline */
+  .timeline{display:flex;align-items:flex-start;overflow-x:auto;padding:14px 4px;gap:0}
+  .tl-node{display:flex;flex-direction:column;align-items:center;min-width:120px;position:relative;text-align:center}
+  .tl-dot{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-size:16px;z-index:2;border:3px solid #fff;box-shadow:0 0 0 2px var(--border)}
+  .tl-dot.done{background:var(--green);color:#fff;box-shadow:0 0 0 2px var(--green)}
+  .tl-dot.current{background:var(--orange);color:#fff;box-shadow:0 0 0 2px var(--orange);animation:pulse 1.6s infinite}
+  .tl-dot.wait{background:#eceff3;color:#9aa8b8}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 2px var(--orange)}50%{box-shadow:0 0 0 7px rgba(232,137,43,.22)}}
+  .tl-line{position:absolute;top:18px;left:50%;width:100%;height:3px;background:var(--border);z-index:1}
+  .tl-line.done{background:var(--green)}
+  .tl-node .tl-label{font-size:12.5px;font-weight:600;margin-top:7px}
+  .tl-node .tl-time{font-size:10.5px;color:var(--grey);margin-top:2px}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  th{background:var(--grey-light);font-size:12px;color:var(--grey);font-weight:600;position:sticky;top:0}
+  tr:hover td{background:var(--blue-light)}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+  /* Doc list */
+  .doc-row{display:flex;align-items:center;gap:14px;padding:14px;border:1px solid var(--border);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:.15s;background:#fff}
+  .doc-row:hover{border-color:var(--blue);box-shadow:var(--shadow);transform:translateX(3px)}
+  .doc-row .doc-ico{font-size:26px}
+  .doc-row .doc-info{flex:1;min-width:0}
+  .doc-row .doc-info h4{font-size:14.5px;color:var(--blue-dark)}
+  .doc-row .doc-info p{font-size:12px;color:var(--grey)}
+  .doc-row .doc-meta{text-align:right;display:flex;flex-direction:column;gap:5px;align-items:flex-end}
+  /* Bars */
+  .bar-chart{display:flex;flex-direction:column;gap:14px;margin-top:8px}
+  .bar-item{display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:12px}
+  .bar-item .bar-name{font-size:13px;font-weight:600}
+  .bar-track{background:var(--grey-light);border-radius:8px;height:26px;overflow:hidden;position:relative}
+  .bar-fill{height:100%;border-radius:8px;transition:width .9s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:700}
+  .bar-fill.ok{background:linear-gradient(90deg,#27b37c,#1f9d6b)}
+  .bar-fill.warn{background:linear-gradient(90deg,#f0a94b,#e8892b)}
+  .bar-fill.crit{background:linear-gradient(90deg,#e5687a,#d0455a)}
+  .bar-item .bar-val{font-size:12.5px;font-weight:700;text-align:right}
+  .sla-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--red);z-index:3}
+  /* Stat tiles */
+  .stat{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  .stat .num{font-size:28px;font-weight:800;color:var(--blue-dark);line-height:1}
+  .stat .lbl{font-size:12.5px;color:var(--grey);margin-top:5px}
+  .stat .lbl .en{display:block;font-size:10px;opacity:.7}
+  /* Alert */
+  .alert{border-radius:14px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start;margin-bottom:16px}
+  .alert-orange{background:var(--orange-light);border:1.5px solid #f2c48c}
+  .alert .alert-ico{font-size:26px}
+  .alert h4{color:#b8641a;font-size:15.5px;margin-bottom:3px}
+  .alert p{font-size:13px;color:#8a5619}
+  /* Spinner */
+  .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(30,94,184,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+  .spinner.big{width:34px;height:34px;border-width:4px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ai-loading{display:flex;align-items:center;gap:12px;padding:18px;color:var(--blue);font-weight:600}
+  /* AI panel */
+  .ai-panel{border:1.5px solid #c9dcf5;background:linear-gradient(180deg,#f5f9ff,#fff);border-radius:14px;padding:16px;margin-top:6px}
+  .ai-panel .ai-head{display:flex;align-items:center;gap:8px;color:var(--blue-dark);font-weight:700;margin-bottom:12px}
+  .check-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border)}
+  .check-item:last-child{border-bottom:none}
+  .check-item .ci-ico{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+  .ci-pass{background:var(--green-light);color:var(--green)}
+  .ci-fail{background:var(--red-light);color:var(--red)}
+  .check-item .ci-text{flex:1;font-size:13.5px}
+  .summary-box{background:var(--blue-light);border-radius:11px;padding:13px 15px;font-size:13.5px;color:var(--blue-dark);margin:12px 0;line-height:1.6}
+  .summary-box .sb-label{font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:block}
+  /* STP banner */
+  .stp-banner{background:linear-gradient(100deg,#6b3fbf,#8a5ee0);color:#fff;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin:12px 0}
+  .stp-banner .stp-ico{font-size:26px}
+  .stp-banner h4{font-size:15px}
+  .stp-banner p{font-size:12px;opacity:.9}
+  /* Detail meta */
+  .meta-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}
+  .meta-grid .mg{background:var(--grey-light);border-radius:10px;padding:10px 12px}
+  .meta-grid .mg .k{font-size:11px;color:var(--grey)}
+  .meta-grid .mg .v{font-size:14px;font-weight:600;margin-top:2px}
+  /* Footer */
+  footer{
+    position:fixed;bottom:0;left:0;right:0;background:linear-gradient(100deg,var(--green),#17845b);
+    color:#fff;text-align:center;padding:10px;font-size:13px;font-weight:600;z-index:30;
+    box-shadow:0 -3px 12px rgba(0,0,0,.12);letter-spacing:.2px;
+  }
+  footer span{opacity:.6;margin:0 4px}
+  /* Toast */
+  #toast{position:fixed;bottom:56px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:.3s;z-index:100;pointer-events:none;box-shadow:var(--shadow-lg)}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .empty{text-align:center;padding:40px;color:var(--grey)}
+  .empty .ico{font-size:44px;margin-bottom:10px;opacity:.5}
+  .back-link{color:var(--blue);cursor:pointer;font-size:13.5px;font-weight:600;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px}
+  .back-link:hover{text-decoration:underline}
+  .role-hidden{display:none!important}
+  .filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .filter-bar select{padding:8px 12px;border-radius:9px;border:1px solid var(--border);font-family:inherit;font-size:13.5px;background:#fff}
+  @media(max-width:640px){
+    .logo h1{font-size:14px}.logo span{display:none}
+    nav{top:66px}.bar-item{grid-template-columns:80px 1fr 40px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="mark">📋</div>
+    <div>
+      <h1>ระบบสำนวนดิจิทัลอัจฉริยะ</h1>
+      <span>AI-Powered Paperless Workflow • สำนักงานราชการดิจิทัล</span>
+    </div>
+  </div>
+  <div class="role-switch">
+    <label>บทบาท:</label>
+    <select id="roleSel" onchange="switchRole(this.value)">
+      <option value="originator">👤 เจ้าหน้าที่สร้างเอกสาร</option>
+      <option value="approver">✅ ผู้อนุมัติ</option>
+      <option value="executive">📊 ผู้บริหาร</option>
+    </select>
+  </div>
+</header>
+
+<nav id="nav"></nav>
+
+<main>
+  <!-- Originator: Create -->
+  <div class="page" id="page-create">
+    <h2 class="page-title">สร้างเอกสารดิจิทัล <span class="en">Create Digital Document</span></h2>
+    <p class="page-sub">เลือกแม่แบบเอกสาร กรอกข้อมูล ลงลายมือชื่อดิจิทัล แล้วส่งเข้าสู่ระบบเวียนเอกสาร</p>
+
+    <div class="card">
+      <h3>1️⃣ เลือกแม่แบบเอกสาร <span style="font-size:12px;color:var(--grey);font-weight:400">Template</span></h3>
+      <div class="grid grid-3" id="tplGrid"></div>
+    </div>
+
+    <div class="card" id="createForm" style="display:none">
+      <h3>2️⃣ กรอกรายละเอียด <span style="font-size:12px;color:var(--grey);font-weight:400">Document Details</span></h3>
+      <div class="field"><label>ชื่อเรื่อง (Subject)</label><input id="f-title" placeholder="เช่น ขออนุมัติจัดซื้อวัสดุสำนักงาน"></div>
+      <div class="grid grid-3">
+        <div class="field"><label>หน่วยงานผู้สร้าง (Department)</label>
+          <select id="f-dept"><option>สารบรรณ</option><option>การเงิน</option><option>พัสดุ</option><option>บริหาร</option></select></div>
+        <div class="field"><label>วงเงิน/จำนวน (บาท)</label><input id="f-amount" type="number" placeholder="0"></div>
+        <div class="field"><label>ความเร่งด่วน (Priority)</label>
+          <select id="f-priority"><option value="normal">ปกติ</option><option value="high">ด่วน</option><option value="low">ไม่เร่งด่วน</option></select></div>
+      </div>
+      <div class="field"><label>รายละเอียด (Details)</label><textarea id="f-detail" rows="3" placeholder="รายละเอียดเนื้อหาเอกสาร..."></textarea></div>
+
+      <h3 style="margin-top:8px">3️⃣ ลงลายมือชื่อดิจิทัล <span style="font-size:12px;color:var(--grey);font-weight:400">Digital Signature</span></h3>
+      <div id="sigArea">
+        <div class="sig-box" id="sigBox">
+          <div style="font-size:34px;margin-bottom:6px">✍️</div>
+          <p style="color:var(--grey);font-size:13px;margin-bottom:12px">ลงนามด้วยใบรับรองอิเล็กทรอนิกส์ (Digital Certificate)</p>
+          <button class="btn btn-primary" onclick="doSign()">🔏 ลงนามดิจิทัล</button>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <button class="btn btn-green" id="submitBtn" onclick="submitDoc()" disabled>📤 ส่งเข้าระบบเวียนเอกสาร</button>
+        <button class="btn btn-ghost" onclick="resetCreate()">↺ เริ่มใหม่</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Originator: My Docs -->
+  <div class="page" id="page-mydocs">
+    <h2 class="page-title">เอกสารของฉัน <span class="en">My Documents</span></h2>
+    <p class="page-sub">ติดตามสถานะและเส้นทางการเวียนเอกสารที่คุณสร้าง</p>
+    <div id="myDocsList"></div>
+  </div>
+
+  <!-- Approver inbox -->
+  <div class="page" id="page-inbox">
+    <h2 class="page-title">กล่องรออนุมัติ <span class="en">Approval Inbox</span></h2>
+    <p class="page-sub">เอกสารที่รอการตรวจสอบและอนุมัติ พร้อมผู้ช่วย AI สรุปและตรวจสอบอัตโนมัติ</p>
+    <div id="inboxList"></div>
+  </div>
+
+  <!-- Executive dashboard -->
+  <div class="page" id="page-dashboard">
+    <h2 class="page-title">แดชบอร์ดผู้บริหาร <span class="en">Executive Dashboard</span></h2>
+    <p class="page-sub">ภาพรวมปริมาณงาน การคาดการณ์คอขวด และการจัดสรรภาระงานอัตโนมัติ</p>
+
+    <div class="grid grid-4" id="statTiles" style="margin-bottom:16px"></div>
+
+    <div id="alertZone"></div>
+
+    <div class="card">
+      <h3>📊 ปริมาณงานคงค้างแต่ละหน่วยงาน <span style="font-size:12px;color:var(--grey);font-weight:400">Queue by Department</span></h3>
+      <div class="bar-chart" id="deptChart"></div>
+      <p style="font-size:11.5px;color:var(--grey);margin-top:12px">▏ เส้นสีแดง = เกณฑ์ SLA (ปริมาณงานสูงสุดที่รับได้)</p>
+    </div>
+
+    <div class="card">
+      <h3>🤖 การวิเคราะห์เชิงคาดการณ์ <span style="font-size:12px;color:var(--grey);font-weight:400">Predictive Analysis</span></h3>
+      <div id="forecastZone">
+        <button class="btn btn-primary" onclick="runForecast()">🔮 ให้ AI วิเคราะห์แนวโน้มคอขวด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doc detail -->
+  <div class="page" id="page-detail"></div>
+
+  <!-- Audit trail -->
+  <div class="page" id="page-audit">
+    <h2 class="page-title">ตรวจสอบย้อนหลัง <span class="en">Audit Trail</span></h2>
+    <p class="page-sub">ประวัติการดำเนินการทั้งหมด โปร่งใส ตรวจสอบได้ พร้อมลายมือชื่อดิจิทัลกำกับ</p>
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:600">กรองตามเอกสาร:</span>
+      <select id="auditFilter" onchange="renderAudit()"><option value="">— ทั้งหมด —</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>เวลา</th><th>เอกสาร</th><th>ผู้ดำเนินการ</th><th>การกระทำ</th><th>หน่วยงาน</th></tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+<footer>แก้ปัญหาเอกสารตกค้าง <span>•</span> อนุมัติรวดเร็ว <span>•</span> โปร่งใส ตรวจสอบได้</footer>
+
+<script>
+/* ============ MOCK DATA ============ */
+const DEPTS_ORDER = ["สารบรรณ","การเงิน","พัสดุ","บริหาร"];
+const TEMPLATES = [
+  {id:"memo", name:"บันทึกข้อความ", en:"Internal Memo", ico:"📝"},
+  {id:"purchase", name:"ใบขออนุมัติจัดซื้อ", en:"Purchase Request", ico:"🛒"},
+  {id:"leave", name:"ใบลา", en:"Leave Request", ico:"📅"},
+];
+const STATES = {
+  draft:{label:"ฉบับร่าง",cls:"b-draft"},
+  submitted:{label:"ส่งแล้ว",cls:"b-submitted"},
+  review:{label:"กำลังพิจารณา",cls:"b-review"},
+  approved:{label:"อนุมัติแล้ว",cls:"b-approved"},
+  rejected:{label:"ตีกลับ",cls:"b-rejected"},
+  stp:{label:"อนุมัติอัตโนมัติ (STP)",cls:"b-stp"},
+};
+const PRIO = {high:{label:"ด่วน",cls:"b-high"},normal:{label:"ปกติ",cls:"b-normal"},low:{label:"ไม่เร่งด่วน",cls:"b-low"}};
+
+let departments = [
+  {name:"สารบรรณ", workload:8, capacity:15},
+  {name:"การเงิน", workload:19, capacity:16},
+  {name:"พัสดุ", workload:11, capacity:14},
+  {name:"บริหาร", workload:6, capacity:12},
+];
+// rising trend for การเงิน
+const financeTrend = [9,11,13,15,17,19];
+
+function ts(daysAgo, h, m){
+  const d = new Date(2026,6,14,h||9,m||0);
+  d.setDate(d.getDate()-daysAgo);
+  return d;
+}
+function fmt(d){
+  return d.toLocaleString('th-TH',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+let seq = 100;
+function nextId(){return "DOC-"+(++seq);}
+
+// route each doc travels
+const ROUTE = ["สารบรรณ","การเงิน","พัสดุ","บริหาร"];
+
+let documents = [];
+let auditLog = [];
+
+function seedDoc(o){
+  const id = nextId();
+  const doc = Object.assign({
+    id, tpl:"memo", title:"", dept:"สารบรรณ", amount:0, priority:"normal",
+    detail:"", state:"submitted", signed:true, hash:fakeHash(),
+    signedAt:ts(3,10,15), routeIdx:0, createdBy:"เจ้าหน้าที่ วิภาดา"
+  }, o);
+  documents.push(doc);
+  return doc;
+}
+function fakeHash(){
+  const c="0123456789abcdef";let s="";for(let i=0;i<64;i++)s+=c[Math.floor(Math.random()*16)];return s;
+}
+function addAudit(docId, actor, action, dept, when){
+  auditLog.push({docId, actor, action, dept, when: when||new Date()});
+}
+
+/* Canned AI responses per doc */
+const aiResponses = {};
+function setAI(docId, checklist, summary){
+  aiResponses[docId] = {checklist, summary};
+}
+
+/* ---- seed ~15 docs across states ---- */
+(function seedAll(){
+  // 1 approved memo
+  let d1 = seedDoc({tpl:"memo",title:"ขอเชิญประชุมคณะกรรมการประจำเดือน",dept:"บริหาร",amount:0,priority:"normal",state:"approved",routeIdx:4,detail:"เชิญประชุมคณะกรรมการบริหารประจำเดือนกรกฎาคม"});
+  // STP-eligible small purchases (2)
+  let d2 = seedDoc({tpl:"purchase",title:"จัดซื้อวัสดุสำนักงาน (หมึกพิมพ์)",dept:"พัสดุ",amount:12500,priority:"normal",state:"review",routeIdx:1,detail:"จัดซื้อหมึกพิมพ์และกระดาษ A4 สำหรับไตรมาส 3"});
+  let d3 = seedDoc({tpl:"purchase",title:"จัดซื้อน้ำดื่มสำหรับสำนักงาน",dept:"พัสดุ",amount:8900,priority:"low",state:"review",routeIdx:1,detail:"จัดซื้อน้ำดื่มบรรจุขวดจำนวน 200 แพ็ค"});
+  // large purchase needing manual approval
+  let d4 = seedDoc({tpl:"purchase",title:"จัดซื้อครุภัณฑ์คอมพิวเตอร์ 20 เครื่อง",dept:"พัสดุ",amount:640000,priority:"high",state:"review",routeIdx:1,detail:"จัดซื้อเครื่องคอมพิวเตอร์ทดแทนของเดิมที่ชำรุด 20 เครื่อง"});
+  // leave requests
+  let d5 = seedDoc({tpl:"leave",title:"ใบลาพักผ่อน 3 วัน - นายสมชาย",dept:"บริหาร",amount:0,priority:"normal",state:"review",routeIdx:3,detail:"ขอลาพักผ่อนประจำปี วันที่ 20-22 ก.ค. 2569"});
+  let d6 = seedDoc({tpl:"leave",title:"ใบลาป่วย - นางสาวมาลี",dept:"สารบรรณ",amount:0,priority:"normal",state:"approved",routeIdx:4,detail:"ลาป่วยตามใบรับรองแพทย์ 2 วัน"});
+  // rejected
+  let d7 = seedDoc({tpl:"purchase",title:"จัดซื้อเฟอร์นิเจอร์สำนักงานหรูหรา",dept:"พัสดุ",amount:280000,priority:"normal",state:"rejected",routeIdx:2,detail:"จัดซื้อชุดโซฟาและโต๊ะประชุมนำเข้า"});
+  // more in-review across depts
+  let d8 = seedDoc({tpl:"memo",title:"ขออนุมัติจัดอบรมพัฒนาบุคลากร",dept:"บริหาร",amount:45000,priority:"high",state:"review",routeIdx:1,detail:"จัดอบรมหลักสูตรดิจิทัลภาครัฐ 2 วัน"});
+  let d9 = seedDoc({tpl:"purchase",title:"จัดซื้ออุปกรณ์เครือข่าย",dept:"พัสดุ",amount:95000,priority:"normal",state:"review",routeIdx:2,detail:"จัดซื้อ Switch และ Access Point"});
+  let d10 = seedDoc({tpl:"memo",title:"ขอความอนุเคราะห์ใช้ห้องประชุม",dept:"สารบรรณ",amount:0,priority:"low",state:"submitted",routeIdx:0,detail:"ขอใช้ห้องประชุมใหญ่วันที่ 25 ก.ค."});
+  let d11 = seedDoc({tpl:"leave",title:"ใบลากิจ - นายวีระ",dept:"การเงิน",amount:0,priority:"normal",state:"review",routeIdx:1,detail:"ลากิจธุระส่วนตัว 1 วัน"});
+  let d12 = seedDoc({tpl:"purchase",title:"จัดซื้อวัสดุทำความสะอาด",dept:"พัสดุ",amount:6200,priority:"low",state:"submitted",routeIdx:0,detail:"น้ำยาทำความสะอาดและอุปกรณ์"});
+  let d13 = seedDoc({tpl:"memo",title:"รายงานผลการดำเนินงานไตรมาส 2",dept:"บริหาร",amount:0,priority:"normal",state:"approved",routeIdx:4,detail:"สรุปผลงานไตรมาส 2 ปีงบประมาณ 2569"});
+  let d14 = seedDoc({tpl:"purchase",title:"จัดซื้อเครื่องปรับอากาศ 5 เครื่อง",dept:"การเงิน",amount:175000,priority:"high",state:"review",routeIdx:1,detail:"ทดแทนเครื่องเดิมที่ชำรุด"});
+  let d15 = seedDoc({tpl:"memo",title:"ขออนุมัติเดินทางไปราชการ ตจว.",dept:"การเงิน",amount:22000,priority:"normal",state:"review",routeIdx:1,detail:"เดินทางไปราชการจังหวัดเชียงใหม่ 3 วัน"});
+
+  // AI canned per doc
+  setAI(d2.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
+    "เอกสารจัดซื้อหมึกพิมพ์และกระดาษ วงเงิน 12,500 บาท ต่ำกว่าเกณฑ์ 50,000 บาท ข้อมูลครบถ้วน เอกสารแนบครบ สอดคล้องระเบียบพัสดุฯ เข้าเกณฑ์อนุมัติอัตโนมัติ");
+  setAI(d3.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
+    "จัดซื้อน้ำดื่ม วงเงิน 8,900 บาท เป็นรายการปกติต่ำกว่าเกณฑ์ เอกสารครบถ้วน เข้าเกณฑ์อนุมัติอัตโนมัติ");
+  setAI(d4.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:false}],
+    "จัดซื้อครุภัณฑ์คอมพิวเตอร์ 20 เครื่อง วงเงิน 640,000 บาท เกินเกณฑ์อนุมัติอัตโนมัติ ต้องผ่านการพิจารณาโดยผู้มีอำนาจ ข้อมูลและเอกสารแนบครบถ้วน มีใบเสนอราคา 3 ราย ควรตรวจสอบการเปรียบเทียบราคาก่อนอนุมัติ");
+  setAI(d5.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"สิทธิวันลาคงเหลือเพียงพอ",pass:true}],
+    "ใบลาพักผ่อน 3 วัน สิทธิวันลาคงเหลือ 8 วัน เพียงพอ ไม่กระทบภารกิจเร่งด่วน สามารถอนุมัติได้");
+  setAI(d8.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องกับแผนพัฒนาบุคลากร",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
+    "โครงการอบรมพัฒนาบุคลากร วงเงิน 45,000 บาท สอดคล้องกับแผนพัฒนาบุคลากรประจำปี ต่ำกว่าเกณฑ์ 50,000 บาท เอกสารครบ เข้าเกณฑ์อนุมัติอัตโนมัติ");
+  setAI(d9.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:false},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:false}],
+    "จัดซื้ออุปกรณ์เครือข่าย วงเงิน 95,000 บาท เกินเกณฑ์อัตโนมัติ พบว่ายังขาดใบเปรียบเทียบราคาจากผู้ขายรายที่ 3 ควรขอเอกสารเพิ่มเติมก่อนพิจารณา");
+  setAI(d11.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"สิทธิวันลาคงเหลือเพียงพอ",pass:true}],
+    "ใบลากิจ 1 วัน สิทธิคงเหลือเพียงพอ ไม่กระทบงาน อนุมัติได้");
+  setAI(d14.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:false}],
+    "จัดซื้อเครื่องปรับอากาศ วงเงิน 175,000 บาท เกินเกณฑ์อัตโนมัติ เอกสารครบถ้วน มีเหตุผลความจำเป็น (ของเดิมชำรุด) ควรอนุมัติโดยผู้มีอำนาจ");
+  setAI(d15.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องกับระเบียบเดินทาง",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
+    "ขออนุมัติเดินทางไปราชการ วงเงินค่าใช้จ่าย 22,000 บาท ต่ำกว่าเกณฑ์ 50,000 บาท คำนวณเบี้ยเลี้ยงและค่าที่พักถูกต้องตามระเบียบ เข้าเกณฑ์อนุมัติอัตโนมัติ");
+
+  // seed audit history
+  documents.forEach((d,i)=>{
+    const created = ts(6-Math.min(5,i%6), 9, 10+i);
+    addAudit(d.id, d.createdBy, "สร้างเอกสาร (ฉบับร่าง)", d.dept, created);
+    addAudit(d.id, d.createdBy, "ลงลายมือชื่อดิจิทัล", d.dept, new Date(created.getTime()+3600000));
+    addAudit(d.id, d.createdBy, "ส่งเข้าระบบเวียนเอกสาร", d.dept, new Date(created.getTime()+7200000));
+    for(let r=0;r<d.routeIdx;r++){
+      const dep = ROUTE[r];
+      addAudit(d.id, "เจ้าหน้าที่ "+dep, "รับและตรวจสอบเอกสาร", dep, ts(5-r, 11, 20+r));
+      if(r<d.routeIdx-1 || d.state==="approved"||d.state==="rejected"){
+        addAudit(d.id, "เจ้าหน้าที่ "+dep, r===d.routeIdx-1?(d.state==="rejected"?"ตีกลับเอกสาร":"อนุมัติและส่งต่อ"):"ส่งต่อหน่วยงานถัดไป", dep, ts(5-r,14,30+r));
+      }
+    }
+    if(d.state==="approved") addAudit(d.id,"ผู้บริหาร ดร.ประสิทธิ์","อนุมัติขั้นสุดท้าย","บริหาร",ts(1,15,0));
+    if(d.state==="rejected") addAudit(d.id,"เจ้าหน้าที่ พัสดุ","ตีกลับ: วงเงินสูงเกินความจำเป็น","พัสดุ",ts(2,15,0));
+  });
+})();
+
+/* ============ STATE / UI ============ */
+let role = "originator";
+let selectedTpl = null;
+let signState = null; // {hash, at}
+let currentDoc = null;
+let prevPageForDetail = null;
+let forecastDone = false;
+
+const NAV = {
+  originator:[
+    {id:"create",label:"สร้างเอกสาร",en:"Create"},
+    {id:"mydocs",label:"เอกสารของฉัน",en:"My Documents"},
+    {id:"audit",label:"ตรวจสอบย้อนหลัง",en:"Audit Trail"},
+  ],
+  approver:[
+    {id:"inbox",label:"กล่องรออนุมัติ",en:"Inbox"},
+    {id:"audit",label:"ตรวจสอบย้อนหลัง",en:"Audit Trail"},
+  ],
+  executive:[
+    {id:"dashboard",label:"แดชบอร์ด",en:"Dashboard"},
+    {id:"audit",label:"ตรวจสอบย้อนหลัง",en:"Audit Trail"},
+  ],
+};
+
+function switchRole(r){
+  role = r;
+  renderNav();
+  const first = NAV[r][0].id;
+  showPage(first);
+}
+
+function renderNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = NAV[role].map(n=>
+    `<button data-page="${n.id}" onclick="showPage('${n.id}')"><span>${n.label}</span><span class="en">${n.en}</span></button>`
+  ).join('');
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active', b.dataset.page===id));
+  if(id==='mydocs') renderMyDocs();
+  if(id==='inbox') renderInbox();
+  if(id==='dashboard') renderDashboard();
+  if(id==='audit') renderAudit();
+  window.scrollTo(0,0);
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ---------- Module 1: Create + Sign ---------- */
+function renderTemplates(){
+  document.getElementById('tplGrid').innerHTML = TEMPLATES.map(t=>
+    `<div class="tpl" id="tpl-${t.id}" onclick="pickTpl('${t.id}')">
+      <div class="ico">${t.ico}</div><h4>${t.name}</h4><p>${t.en}</p></div>`
+  ).join('');
+}
+function pickTpl(id){
+  selectedTpl = id;
+  document.querySelectorAll('.tpl').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('tpl-'+id).classList.add('sel');
+  document.getElementById('createForm').style.display='block';
+  const t = TEMPLATES.find(x=>x.id===id);
+  document.getElementById('f-title').value = "";
+  document.getElementById('f-title').placeholder = "หัวข้อ"+t.name;
+  document.getElementById('createForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function doSign(){
+  const box = document.getElementById('sigBox');
+  box.innerHTML = `<div class="ai-loading" style="justify-content:center"><span class="spinner"></span> กำลังลงนามด้วยใบรับรองอิเล็กทรอนิกส์...</div>`;
+  setTimeout(()=>{
+    const hash = fakeHash();
+    signState = {hash, at:new Date()};
+    document.getElementById('sigArea').innerHTML = `
+      <div class="sig-box sig-done">
+        <div class="shield">🛡️ ✓ ลงนามดิจิทัลสำเร็จ (Digitally Signed)</div>
+        <div style="font-size:12.5px;color:#157a51;margin-top:6px">ผู้ลงนาม: เจ้าหน้าที่ วิภาดา • ${fmt(signState.at)}</div>
+        <div style="font-size:11.5px;color:var(--grey);margin-top:8px">SHA-256 Digital Fingerprint:</div>
+        <div class="sig-hash">${hash}</div>
+      </div>`;
+    document.getElementById('submitBtn').disabled = false;
+    toast("🔏 ลงนามดิจิทัลสำเร็จ");
+  },1400);
+}
+function submitDoc(){
+  if(!selectedTpl){toast("กรุณาเลือกแม่แบบ");return;}
+  const title = document.getElementById('f-title').value.trim() || TEMPLATES.find(t=>t.id===selectedTpl).name;
+  const dept = document.getElementById('f-dept').value;
+  const amount = parseFloat(document.getElementById('f-amount').value)||0;
+  const priority = document.getElementById('f-priority').value;
+  const detail = document.getElementById('f-detail').value.trim();
+  const now = new Date();
+  const doc = {
+    id: nextId(), tpl:selectedTpl, title, dept, amount, priority, detail,
+    state:"submitted", signed:true, hash:signState.hash, signedAt:signState.at,
+    routeIdx:0, createdBy:"เจ้าหน้าที่ วิภาดา (คุณ)", mine:true
+  };
+  documents.unshift(doc);
+  addAudit(doc.id, doc.createdBy, "สร้างเอกสาร (ฉบับร่าง)", dept, new Date(now.getTime()-2000));
+  addAudit(doc.id, doc.createdBy, "ลงลายมือชื่อดิจิทัล", dept, new Date(now.getTime()-1000));
+  addAudit(doc.id, doc.createdBy, "ส่งเข้าระบบเวียนเอกสาร", dept, now);
+  // build a simple AI response for new doc
+  const pass = amount < 500000;
+  setAI(doc.id,[
+    {k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},
+    {k:"ความสอดคล้องตามกฎระเบียบ",pass:true},
+    {k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:amount<50000}
+  ], `เอกสาร "${title}" วงเงิน ${amount.toLocaleString()} บาท ${amount<50000?'ต่ำกว่าเกณฑ์ 50,000 บาท เข้าเกณฑ์อนุมัติอัตโนมัติ':'เกินเกณฑ์อัตโนมัติ ต้องผ่านการพิจารณาโดยผู้มีอำนาจ'} ข้อมูลครบถ้วน`);
+  // bump originating dept workload
+  const dep = departments.find(x=>x.name===dept); if(dep) dep.workload++;
+  toast("📤 ส่งเอกสารเข้าระบบเรียบร้อย");
+  resetCreate();
+  showPage('mydocs');
+}
+function resetCreate(){
+  selectedTpl=null; signState=null;
+  document.querySelectorAll('.tpl').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('createForm').style.display='none';
+  document.getElementById('f-title').value='';
+  document.getElementById('f-amount').value='';
+  document.getElementById('f-detail').value='';
+  document.getElementById('sigArea').innerHTML = `
+    <div class="sig-box" id="sigBox">
+      <div style="font-size:34px;margin-bottom:6px">✍️</div>
+      <p style="color:var(--grey);font-size:13px;margin-bottom:12px">ลงนามด้วยใบรับรองอิเล็กทรอนิกส์ (Digital Certificate)</p>
+      <button class="btn btn-primary" onclick="doSign()">🔏 ลงนามดิจิทัล</button>
+    </div>`;
+  document.getElementById('submitBtn').disabled=true;
+}
+
+/* ---------- My Docs ---------- */
+function docIco(tpl){return (TEMPLATES.find(t=>t.id===tpl)||{}).ico||"📄";}
+function stateBadge(s){const st=STATES[s];return `<span class="badge ${st.cls}">${st.label}</span>`;}
+function prioBadge(p){const x=PRIO[p];return `<span class="badge ${x.cls}">${x.label}</span>`;}
+
+function renderMyDocs(){
+  const mine = documents.filter(d=>d.mine || d.createdBy.includes("วิภาดา"));
+  const list = document.getElementById('myDocsList');
+  if(!mine.length){list.innerHTML=emptyState("ยังไม่มีเอกสาร","ไปที่หน้า “สร้างเอกสาร” เพื่อเริ่มต้น");return;}
+  list.innerHTML = mine.map(d=>docRow(d)).join('');
+}
+function docRow(d){
+  return `<div class="doc-row" onclick="openDoc('${d.id}','${curPage()}')">
+    <div class="doc-ico">${docIco(d.tpl)}</div>
+    <div class="doc-info">
+      <h4>${d.title}</h4>
+      <p>${d.id} • ${(TEMPLATES.find(t=>t.id===d.tpl)||{}).name} • ${d.amount>0?d.amount.toLocaleString()+' บาท':'—'}</p>
+    </div>
+    <div class="doc-meta">${stateBadge(d.state)} ${prioBadge(d.priority)}</div>
+  </div>`;
+}
+function curPage(){const a=document.querySelector('.page.active');return a?a.id.replace('page-',''):'mydocs';}
+function emptyState(t,s){return `<div class="empty"><div class="ico">📭</div><h3>${t}</h3><p>${s}</p></div>`;}
+
+/* ---------- Timeline ---------- */
+function routeTimeline(doc){
+  // nodes: submit + each dept in ROUTE
+  const nodes = [{label:"ส่งเข้าระบบ",time:doc.signedAt}].concat(ROUTE.map(r=>({label:r,dept:r})));
+  const total = nodes.length;
+  const cur = doc.state==="approved"||doc.state==="stp" ? total : (doc.state==="rejected"? doc.routeIdx+1 : doc.routeIdx+1);
+  let html='<div class="timeline">';
+  nodes.forEach((n,i)=>{
+    let cls, ico;
+    if(doc.state==="rejected" && i===doc.routeIdx+1){cls="current";ico="✕";}
+    else if(i < cur){cls="done";ico="✓";}
+    else if(i===cur && doc.state!=="approved" && doc.state!=="stp"){cls="current";ico="●";}
+    else{cls="wait";ico=(i+1);}
+    if((doc.state==="approved"||doc.state==="stp")){cls="done";ico="✓";}
+    // find audit time
+    const auds = auditLog.filter(a=>a.docId===doc.id && (i===0? a.action.includes("ส่งเข้าระบบ") : a.dept===n.dept));
+    const time = auds.length? fmt(auds[auds.length-1].when) : (cls==="wait"?"รอดำเนินการ":"");
+    html += `<div class="tl-node">
+      ${i>0?`<div class="tl-line ${i<=cur?'done':''}"></div>`:''}
+      <div class="tl-dot ${cls}">${ico}</div>
+      <div class="tl-label">${n.label}</div>
+      <div class="tl-time">${time}</div>
+    </div>`;
+  });
+  html+='</div>';
+  return html;
+}
+
+/* ---------- Doc Detail ---------- */
+function openDoc(id, from){
+  currentDoc = documents.find(d=>d.id===id);
+  prevPageForDetail = from||'mydocs';
+  renderDetail();
+  showPage('detail');
+}
+function renderDetail(){
+  const d = currentDoc;
+  const t = TEMPLATES.find(x=>x.id===d.tpl)||{};
+  const isApprover = role==="approver";
+  const canAct = isApprover && d.state==="review";
+  let html = `
+    <span class="back-link" onclick="showPage('${prevPageForDetail}')">← กลับ</span>
+    <h2 class="page-title">${docIco(d.tpl)} ${d.title}</h2>
+    <p class="page-sub">${d.id} • ${t.name} (${t.en}) • สร้างโดย ${d.createdBy}</p>
+
+    <div class="card">
+      <div class="meta-grid">
+        <div class="mg"><div class="k">สถานะ</div><div class="v">${stateBadge(d.state)}</div></div>
+        <div class="mg"><div class="k">ความเร่งด่วน</div><div class="v">${prioBadge(d.priority)}</div></div>
+        <div class="mg"><div class="k">หน่วยงาน</div><div class="v">${d.dept}</div></div>
+        <div class="mg"><div class="k">วงเงิน</div><div class="v">${d.amount>0?d.amount.toLocaleString()+' บาท':'—'}</div></div>
+      </div>
+      <div class="field"><label>รายละเอียด</label><div style="background:var(--grey-light);border-radius:9px;padding:11px 13px;font-size:13.5px">${d.detail||'—'}</div></div>
+      <div class="sig-box sig-done" style="margin-top:6px">
+        <div class="shield">🛡️ ✓ ลงนามดิจิทัลแล้ว</div>
+        <div style="font-size:12px;color:#157a51;margin-top:5px">ผู้ลงนาม: ${d.createdBy} • ${fmt(d.signedAt)}</div>
+        <div class="sig-hash">${d.hash}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🗺️ เส้นทางการเวียนเอกสาร <span style="font-size:12px;color:var(--grey);font-weight:400">Routing Timeline</span></h3>
+      ${routeTimeline(d)}
+    </div>`;
+
+  // AI panel for approver
+  if(isApprover && d.state==="review"){
+    html += `<div class="card"><h3>🤖 ผู้ช่วย AI ตรวจสอบและสรุป <span style="font-size:12px;color:var(--grey);font-weight:400">AI Review & Summary</span></h3>
+      <div id="aiZone"><div class="ai-loading"><span class="spinner"></span> AI กำลังตรวจสอบและสรุปเอกสาร...</div></div></div>`;
+  } else if(d.state==="approved"||d.state==="stp"){
+    html += `<div class="card"><div class="stp-banner" style="background:linear-gradient(100deg,#1f9d6b,#17845b)"><div class="stp-ico">✅</div><div><h4>เอกสารได้รับการอนุมัติแล้ว</h4><p>${d.state==="stp"?'ผ่านการอนุมัติอัตโนมัติ (Straight-Through Processing)':'ผ่านการพิจารณาโดยผู้มีอำนาจ'}</p></div></div></div>`;
+  } else if(d.state==="rejected"){
+    html += `<div class="card"><div class="stp-banner" style="background:linear-gradient(100deg,#d0455a,#b0364a)"><div class="stp-ico">↩️</div><div><h4>เอกสารถูกตีกลับ</h4><p>กรุณาแก้ไขตามข้อสังเกตและส่งใหม่</p></div></div></div>`;
+  }
+
+  document.getElementById('page-detail').innerHTML = html;
+
+  if(isApprover && d.state==="review"){
+    setTimeout(()=>renderAIPanel(d), 1500);
+  }
+}
+
+function renderAIPanel(d){
+  const zone = document.getElementById('aiZone');
+  if(!zone) return;
+  const ai = aiResponses[d.id];
+  const allPass = ai.checklist.every(c=>c.pass);
+  const stpEligible = allPass && d.amount>0 && d.amount<50000;
+  const stpNonPurchase = allPass && d.amount<50000; // memos/leave with small/zero amount
+
+  let html = `<div class="ai-panel">
+    <div class="ai-head">🤖 ผลการตรวจสอบอัตโนมัติ</div>`;
+  ai.checklist.forEach(c=>{
+    html += `<div class="check-item">
+      <div class="ci-ico ${c.pass?'ci-pass':'ci-fail'}">${c.pass?'✓':'✕'}</div>
+      <div class="ci-text">${c.k}</div>
+      <span class="badge ${c.pass?'b-approved':'b-rejected'}">${c.pass?'ผ่าน':'ไม่ผ่าน'}</span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  if(stpEligible || (allPass && d.amount<50000)){
+    // STP auto-approve path
+    html += `<div class="stp-banner"><div class="stp-ico">⚡</div>
+      <div><h4>เข้าเกณฑ์อนุมัติอัตโนมัติ (STP)</h4>
+      <p>ทุกรายการผ่านการตรวจสอบ และวงเงินต่ำกว่า 50,000 บาท ระบบสามารถอนุมัติได้ทันทีโดยไม่ต้องผ่านขั้นตอนบุคคล</p></div></div>
+      <div class="summary-box"><span class="sb-label">สรุปโดย AI</span>${ai.summary}</div>
+      <button class="btn btn-green" onclick="autoApprove('${d.id}')">⚡ อนุมัติอัตโนมัติ (STP)</button>`;
+  } else {
+    // manual path with smart summary
+    html += `<div class="summary-box"><span class="sb-label">📄 บทสรุปสำหรับผู้บริหาร (Smart Executive Summary)</span>${ai.summary}</div>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button class="btn btn-green" onclick="approveDoc('${d.id}')">✓ อนุมัติ</button>
+        <button class="btn btn-red" onclick="rejectDoc('${d.id}')">↩️ ตีกลับ</button>
+      </div>`;
+  }
+  zone.innerHTML = html;
+}
+
+function advanceState(d, newState, actor, action){
+  d.state = newState;
+  d.routeIdx = ROUTE.length;
+  addAudit(d.id, actor, action, d.dept, new Date());
+  // reduce workload of dept
+  const dep = departments.find(x=>x.name===d.dept); if(dep && dep.workload>0) dep.workload--;
+}
+function autoApprove(id){
+  const d = documents.find(x=>x.id===id);
+  advanceState(d,"stp","ระบบ AI (STP Engine)","อนุมัติอัตโนมัติ (STP) — วงเงินต่ำกว่าเกณฑ์");
+  toast("⚡ อนุมัติอัตโนมัติสำเร็จ (STP)");
+  renderInbox(); renderDetail();
+}
+function approveDoc(id){
+  const d = documents.find(x=>x.id===id);
+  advanceState(d,"approved","ผู้อนุมัติ ดร.ประสิทธิ์","อนุมัติเอกสาร");
+  toast("✓ อนุมัติเอกสารเรียบร้อย");
+  renderInbox(); renderDetail();
+}
+function rejectDoc(id){
+  const d = documents.find(x=>x.id===id);
+  advanceState(d,"rejected","ผู้อนุมัติ ดร.ประสิทธิ์","ตีกลับเอกสาร");
+  toast("↩️ ตีกลับเอกสารเรียบร้อย");
+  renderInbox(); renderDetail();
+}
+
+/* ---------- Inbox ---------- */
+function renderInbox(){
+  const pending = documents.filter(d=>d.state==="review")
+    .sort((a,b)=>({high:0,normal:1,low:2}[a.priority]-{high:0,normal:1,low:2}[b.priority]));
+  const list = document.getElementById('inboxList');
+  if(!pending.length){list.innerHTML=emptyState("ไม่มีเอกสารรออนุมัติ","งานทั้งหมดได้รับการดำเนินการแล้ว 🎉");return;}
+  list.innerHTML = `<div style="margin-bottom:12px;font-size:13px;color:var(--grey)">รอดำเนินการ ${pending.length} รายการ • เรียงตามความเร่งด่วน</div>`
+    + pending.map(d=>{
+      const stp = aiResponses[d.id] && aiResponses[d.id].checklist.every(c=>c.pass) && d.amount<50000;
+      return `<div class="doc-row" onclick="openDoc('${d.id}','inbox')">
+        <div class="doc-ico">${docIco(d.tpl)}</div>
+        <div class="doc-info"><h4>${d.title}</h4>
+          <p>${d.id} • ${d.amount>0?d.amount.toLocaleString()+' บาท':'—'} • หน่วยงาน ${d.dept}</p></div>
+        <div class="doc-meta">${prioBadge(d.priority)} ${stp?'<span class="badge b-stp">⚡ เข้าเกณฑ์ STP</span>':stateBadge(d.state)}</div>
+      </div>`;
+    }).join('');
+}
+
+/* ---------- Dashboard / Bottleneck ---------- */
+function renderDashboard(){
+  renderStats();
+  renderDeptChart();
+  renderAlert();
+  // reset forecast zone if not done
+  if(!forecastDone){
+    document.getElementById('forecastZone').innerHTML =
+      `<button class="btn btn-primary" onclick="runForecast()">🔮 ให้ AI วิเคราะห์แนวโน้มคอขวด</button>`;
+  }
+}
+function renderStats(){
+  const pending = documents.filter(d=>d.state==="review"||d.state==="submitted").length;
+  const approved = documents.filter(d=>d.state==="approved"||d.state==="stp").length;
+  const stp = documents.filter(d=>d.state==="stp").length;
+  const overload = departments.filter(x=>x.workload>x.capacity).length;
+  const tiles = [
+    {n:documents.length,l:"เอกสารทั้งหมด",en:"Total Documents"},
+    {n:pending,l:"รอดำเนินการ",en:"Pending"},
+    {n:approved,l:"อนุมัติแล้ว",en:"Approved"},
+    {n:overload,l:"หน่วยงานเกิน SLA",en:"Over SLA",crit:overload>0},
+  ];
+  document.getElementById('statTiles').innerHTML = tiles.map(t=>
+    `<div class="stat"><div class="num" ${t.crit?'style="color:var(--red)"':''}>${t.n}</div><div class="lbl">${t.l}<span class="en">${t.en}</span></div></div>`
+  ).join('');
+}
+function renderDeptChart(){
+  const maxCap = Math.max(...departments.map(d=>Math.max(d.workload,d.capacity)))*1.15;
+  document.getElementById('deptChart').innerHTML = departments.map(d=>{
+    const pct = Math.min(100,(d.workload/maxCap)*100);
+    const slaPct = (d.capacity/maxCap)*100;
+    const over = d.workload>d.capacity;
+    const near = !over && d.workload>=d.capacity*0.85;
+    const cls = over?'crit':(near?'warn':'ok');
+    return `<div class="bar-item">
+      <div class="bar-name">${d.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${pct}%">${d.workload}</div>
+        <div class="sla-line" style="left:${slaPct}%" title="SLA ${d.capacity}"></div>
+      </div>
+      <div class="bar-val" style="color:${over?'var(--red)':'var(--ink)'}">${d.workload}/${d.capacity}</div>
+    </div>`;
+  }).join('');
+}
+function renderAlert(){
+  const over = departments.find(d=>d.workload>d.capacity);
+  const zone = document.getElementById('alertZone');
+  if(over){
+    zone.innerHTML = `<div class="alert alert-orange">
+      <div class="alert-ico">⚠️</div>
+      <div style="flex:1">
+        <h4>แจ้งเตือนล่วงหน้า! งานกองที่หน่วยงาน${over.name}</h4>
+        <p>ปริมาณงานคงค้าง (${over.workload}) เกินเกณฑ์ SLA (${over.capacity}) — เสี่ยงเกิดคอขวดและเอกสารตกค้าง</p>
+        <button class="btn btn-orange btn-sm" style="margin-top:10px" onclick="rebalance()">⚖️ จัดสรรภาระงานอัตโนมัติ</button>
+      </div>
+    </div>`;
+  } else {
+    zone.innerHTML = `<div class="alert" style="background:var(--green-light);border:1.5px solid #a9e0c6">
+      <div class="alert-ico">✅</div>
+      <div><h4 style="color:#157a51">ปริมาณงานอยู่ในเกณฑ์ปกติ</h4>
+      <p style="color:#1a6e4c">ทุกหน่วยงานมีภาระงานต่ำกว่าเกณฑ์ SLA</p></div>
+    </div>`;
+  }
+}
+function runForecast(){
+  const zone = document.getElementById('forecastZone');
+  zone.innerHTML = `<div class="ai-loading"><span class="spinner big"></span> AI กำลังวิเคราะห์แนวโน้มปริมาณงาน...</div>`;
+  setTimeout(()=>{
+    forecastDone = true;
+    const over = departments.find(d=>d.workload>d.capacity) || departments.reduce((a,b)=>a.workload>b.workload?a:b);
+    const trend = financeTrend.map((v,i)=>`<span style="display:inline-block;width:8px;background:var(--blue);border-radius:2px 2px 0 0;height:${8+v*2}px;margin-right:3px" title="วันที่ ${i+1}: ${v}"></span>`).join('');
+    zone.innerHTML = `
+      <div class="ai-panel">
+        <div class="ai-head">🔮 ผลการคาดการณ์เชิงป้องกัน (Predictive Forecast)</div>
+        <div style="display:flex;align-items:flex-end;gap:0;height:60px;margin:8px 0 4px;padding-bottom:4px;border-bottom:1px solid var(--border)">${trend}</div>
+        <p style="font-size:11.5px;color:var(--grey);margin-bottom:12px">แนวโน้มปริมาณงานหน่วยงาน${over.name} 6 วันย้อนหลัง (กำลังไต่ระดับขึ้นต่อเนื่อง)</p>
+        <div class="alert alert-orange" style="margin-bottom:0">
+          <div class="alert-ico">📈</div>
+          <div style="flex:1">
+            <h4>คาดการณ์: หน่วยงาน${over.name}จะมีงานค้างเกิน SLA ภายใน 2 วัน</h4>
+            <p>อัตราการไหลเข้าเฉลี่ย +2 เอกสาร/วัน หากไม่ดำเนินการ จะสะสมเป็นคอขวดกระทบทั้งกระบวนการ</p>
+            <button class="btn btn-orange btn-sm" style="margin-top:10px" onclick="rebalance()">⚖️ จัดสรรภาระงานอัตโนมัติ (Dynamic Balancing)</button>
+          </div>
+        </div>
+      </div>`;
+  },2000);
+}
+function rebalance(){
+  // move excess from overloaded dept to those with spare capacity, animate
+  const over = departments.find(d=>d.workload>d.capacity);
+  if(!over){toast("ไม่มีหน่วยงานที่เกินเกณฑ์");return;}
+  toast("⚖️ กำลังจัดสรรภาระงานอัตโนมัติ...");
+  let excess = over.workload - Math.floor(over.capacity*0.85);
+  const receivers = departments.filter(d=>d!==over).map(d=>({d,room:Math.max(0,Math.floor(d.capacity*0.85)-d.workload)}));
+  // animate in steps
+  let step=0;
+  const iv = setInterval(()=>{
+    if(excess<=0){clearInterval(iv);finishRebalance();return;}
+    const r = receivers.find(x=>x.room>0);
+    if(!r){clearInterval(iv);finishRebalance();return;}
+    over.workload--; r.d.workload++; r.room--; excess--;
+    renderDeptChart(); renderStats();
+    step++;
+    if(step>30){clearInterval(iv);finishRebalance();}
+  },160);
+}
+function finishRebalance(){
+  renderDeptChart(); renderStats(); renderAlert();
+  addAudit("SYSTEM","ระบบ AI (Workload Balancer)","จัดสรรภาระงานอัตโนมัติระหว่างหน่วยงาน","บริหาร",new Date());
+  toast("✅ จัดสรรภาระงานสำเร็จ — คอขวดได้รับการแก้ไข");
+  // update forecast zone to resolved
+  const zone = document.getElementById('forecastZone');
+  if(forecastDone){
+    zone.innerHTML = `<div class="alert" style="background:var(--green-light);border:1.5px solid #a9e0c6;margin-bottom:0">
+      <div class="alert-ico">✅</div>
+      <div><h4 style="color:#157a51">แก้ไขคอขวดสำเร็จ</h4>
+      <p style="color:#1a6e4c">ระบบได้กระจายภาระงานไปยังหน่วยงานที่มีกำลังรับงานเหลือแล้ว ทุกหน่วยงานกลับสู่เกณฑ์ปกติ</p></div></div>`;
+  }
+}
+
+/* ---------- Audit ---------- */
+function renderAudit(){
+  // populate filter
+  const filter = document.getElementById('auditFilter');
+  const cur = filter.value;
+  const opts = ['<option value="">— ทั้งหมด —</option>']
+    .concat(documents.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(d=>`<option value="${d.id}">${d.id} — ${d.title}</option>`));
+  filter.innerHTML = opts.join('');
+  filter.value = cur;
+
+  let rows = auditLog.slice().sort((a,b)=>b.when-a.when);
+  if(cur) rows = rows.filter(r=>r.docId===cur);
+  const body = document.getElementById('auditBody');
+  if(!rows.length){body.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--grey);padding:30px">ไม่มีข้อมูล</td></tr>`;return;}
+  body.innerHTML = rows.map(r=>{
+    const doc = documents.find(d=>d.id===r.docId);
+    return `<tr>
+      <td style="white-space:nowrap">${fmt(r.when)}</td>
+      <td>${r.docId==="SYSTEM"?'<span class="badge b-stp">ระบบ</span>':`<span style="color:var(--blue);cursor:pointer" onclick="openDoc('${r.docId}','audit')">${r.docId}</span>`}${doc?'<br><span style="font-size:11px;color:var(--grey)">'+doc.title+'</span>':''}</td>
+      <td>${r.actor}</td>
+      <td>${r.action}</td>
+      <td><span class="badge b-normal">${r.dept}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ============ INIT ============ */
+renderTemplates();
+renderNav();
+showPage('create');
+</script>
+</body>
+</html>
