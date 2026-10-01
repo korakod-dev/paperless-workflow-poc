@@ -1,0 +1,14 @@
+{
+  "name": "paperless-workflow-poc",
+  "private": true,
+  "description": "UAT tests for the single-file paperless workflow POC",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
