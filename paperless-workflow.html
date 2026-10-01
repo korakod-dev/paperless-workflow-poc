@@ -382,14 +382,29 @@ function seedDoc(o){
   const id = nextId();
   const doc = Object.assign({
     id, tpl:"memo", title:"", dept:"สารบรรณ", amount:0, priority:"normal",
-    detail:"", state:"submitted", signed:true, hash:fakeHash(),
+    detail:"", state:"submitted", signed:true, hash:"",
     signedAt:ts(3,10,15), routeIdx:0, createdBy:"เจ้าหน้าที่ วิภาดา"
   }, o);
   documents.push(doc);
   return doc;
 }
-function fakeHash(){
-  const c="0123456789abcdef";let s="";for(let i=0;i<64;i++)s+=c[Math.floor(Math.random()*16)];return s;
+// escape ค่าที่ผู้ใช้กรอกก่อนใส่ลง innerHTML — กัน HTML/สคริปต์ที่ฝังในชื่อเรื่องหรือรายละเอียด
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// เนื้อหาที่ลายมือชื่อครอบคลุม: แก้ช่องใดช่องหนึ่งหลังลงนาม fingerprint จะไม่ตรง
+function signedContent(d){
+  return JSON.stringify([d.tpl,d.title,d.dept,d.amount,d.priority,d.detail,d.createdBy,new Date(d.signedAt).toISOString()]);
+}
+async function sha256(text){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// อนุมัติอัตโนมัติ (STP) ได้เฉพาะใบขออนุมัติจัดซื้อ วงเงิน 1–49,999 บาท ที่ผ่านทุกข้อตรวจ
+const STP_LIMIT = 50000;
+function stpEligible(d){
+  const ai = aiResponses[d.id];
+  return d.tpl==="purchase" && d.amount>0 && d.amount<STP_LIMIT && !!ai && ai.checklist.every(c=>c.pass);
 }
 function addAudit(docId, actor, action, dept, when){
   auditLog.push({docId, actor, action, dept, when: when||new Date()});
@@ -435,7 +450,7 @@ function setAI(docId, checklist, summary){
   setAI(d5.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"สิทธิวันลาคงเหลือเพียงพอ",pass:true}],
     "ใบลาพักผ่อน 3 วัน สิทธิวันลาคงเหลือ 8 วัน เพียงพอ ไม่กระทบภารกิจเร่งด่วน สามารถอนุมัติได้");
   setAI(d8.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องกับแผนพัฒนาบุคลากร",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
-    "โครงการอบรมพัฒนาบุคลากร วงเงิน 45,000 บาท สอดคล้องกับแผนพัฒนาบุคลากรประจำปี ต่ำกว่าเกณฑ์ 50,000 บาท เอกสารครบ เข้าเกณฑ์อนุมัติอัตโนมัติ");
+    "โครงการอบรมพัฒนาบุคลากร วงเงิน 45,000 บาท สอดคล้องกับแผนพัฒนาบุคลากรประจำปี ต่ำกว่าเกณฑ์ 50,000 บาท เอกสารครบ เป็นบันทึกข้อความจึงเสนอผู้มีอำนาจพิจารณา");
   setAI(d9.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:false},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:false}],
     "จัดซื้ออุปกรณ์เครือข่าย วงเงิน 95,000 บาท เกินเกณฑ์อัตโนมัติ พบว่ายังขาดใบเปรียบเทียบราคาจากผู้ขายรายที่ 3 ควรขอเอกสารเพิ่มเติมก่อนพิจารณา");
   setAI(d11.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"สิทธิวันลาคงเหลือเพียงพอ",pass:true}],
@@ -443,7 +458,7 @@ function setAI(docId, checklist, summary){
   setAI(d14.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องตามกฎระเบียบพัสดุ",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:false}],
     "จัดซื้อเครื่องปรับอากาศ วงเงิน 175,000 บาท เกินเกณฑ์อัตโนมัติ เอกสารครบถ้วน มีเหตุผลความจำเป็น (ของเดิมชำรุด) ควรอนุมัติโดยผู้มีอำนาจ");
   setAI(d15.id,[{k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},{k:"ความสอดคล้องกับระเบียบเดินทาง",pass:true},{k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:true}],
-    "ขออนุมัติเดินทางไปราชการ วงเงินค่าใช้จ่าย 22,000 บาท ต่ำกว่าเกณฑ์ 50,000 บาท คำนวณเบี้ยเลี้ยงและค่าที่พักถูกต้องตามระเบียบ เข้าเกณฑ์อนุมัติอัตโนมัติ");
+    "ขออนุมัติเดินทางไปราชการ วงเงินค่าใช้จ่าย 22,000 บาท ต่ำกว่าเกณฑ์ 50,000 บาท คำนวณเบี้ยเลี้ยงและค่าที่พักถูกต้องตามระเบียบ เสนอผู้มีอำนาจพิจารณา");
 
   // seed audit history
   documents.forEach((d,i)=>{
@@ -462,6 +477,8 @@ function setAI(docId, checklist, summary){
     if(d.state==="rejected") addAudit(d.id,"เจ้าหน้าที่ พัสดุ","ตีกลับ: วงเงินสูงเกินความจำเป็น","พัสดุ",ts(2,15,0));
   });
 })();
+// fingerprint ของเอกสารตัวอย่างคำนวณจากเนื้อหาจริง จึงได้ค่าเดิมทุกครั้งที่โหลดหน้า
+const seedHashes = Promise.all(documents.map(async d=>{ d.hash = await sha256(signedContent(d)); }));
 
 /* ============ STATE / UI ============ */
 let role = "originator";
@@ -526,6 +543,7 @@ function renderTemplates(){
   ).join('');
 }
 function pickTpl(id){
+  if(signState){toast("ลงนามแล้ว เปลี่ยนแม่แบบไม่ได้ — กด “เริ่มใหม่” ก่อน");return;}
   selectedTpl = id;
   document.querySelectorAll('.tpl').forEach(e=>e.classList.remove('sel'));
   document.getElementById('tpl-'+id).classList.add('sel');
@@ -535,55 +553,82 @@ function pickTpl(id){
   document.getElementById('f-title').placeholder = "หัวข้อ"+t.name;
   document.getElementById('createForm').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+const SIGNER = "เจ้าหน้าที่ วิภาดา (คุณ)";
+const FORM_FIELDS = ['f-title','f-dept','f-amount','f-priority','f-detail'];
+function lockForm(on){ FORM_FIELDS.forEach(id=>document.getElementById(id).disabled = on); }
+function readForm(){
+  const raw = document.getElementById('f-amount').value.trim();
+  return {
+    tpl: selectedTpl,
+    title: document.getElementById('f-title').value.trim() || TEMPLATES.find(t=>t.id===selectedTpl).name,
+    dept: document.getElementById('f-dept').value,
+    amount: raw==='' ? 0 : Number(raw),
+    priority: document.getElementById('f-priority').value,
+    detail: document.getElementById('f-detail').value.trim(),
+  };
+}
+function validateForm(f){
+  if(!Number.isFinite(f.amount) || f.amount<0) return "วงเงินต้องเป็นตัวเลขตั้งแต่ 0 บาทขึ้นไป";
+  if(f.tpl==="purchase" && f.amount<=0) return "ใบขออนุมัติจัดซื้อต้องระบุวงเงินมากกว่า 0 บาท";
+  return null;
+}
 function doSign(){
+  if(!selectedTpl){toast("กรุณาเลือกแม่แบบ");return;}
+  const form = readForm();
+  const err = validateForm(form);
+  if(err){toast("⚠️ "+err);return;}
+  // ลงนามแล้วห้ามแก้เนื้อหา ถ้าจะแก้ต้องกด “เริ่มใหม่” แล้วลงนามใหม่
+  lockForm(true);
   const box = document.getElementById('sigBox');
   box.innerHTML = `<div class="ai-loading" style="justify-content:center"><span class="spinner"></span> กำลังลงนามด้วยใบรับรองอิเล็กทรอนิกส์...</div>`;
-  setTimeout(()=>{
-    const hash = fakeHash();
-    signState = {hash, at:new Date()};
+  const at = new Date();
+  const content = Object.assign({}, form, {createdBy:SIGNER, signedAt:at});
+  Promise.all([sha256(signedContent(content)), new Promise(r=>setTimeout(r,1400))]).then(([hash])=>{
+    signState = {hash, at, form};
     document.getElementById('sigArea').innerHTML = `
       <div class="sig-box sig-done">
         <div class="shield">🛡️ ✓ ลงนามดิจิทัลสำเร็จ (Digitally Signed)</div>
-        <div style="font-size:12.5px;color:#157a51;margin-top:6px">ผู้ลงนาม: เจ้าหน้าที่ วิภาดา • ${fmt(signState.at)}</div>
-        <div style="font-size:11.5px;color:var(--grey);margin-top:8px">SHA-256 Digital Fingerprint:</div>
+        <div style="font-size:12.5px;color:#157a51;margin-top:6px">ผู้ลงนาม: ${esc(SIGNER)} • ${fmt(signState.at)}</div>
+        <div style="font-size:11.5px;color:var(--grey);margin-top:8px">SHA-256 Digital Fingerprint ของเนื้อหาเอกสาร:</div>
         <div class="sig-hash">${hash}</div>
       </div>`;
     document.getElementById('submitBtn').disabled = false;
     toast("🔏 ลงนามดิจิทัลสำเร็จ");
-  },1400);
+  });
 }
 function submitDoc(){
-  if(!selectedTpl){toast("กรุณาเลือกแม่แบบ");return;}
-  const title = document.getElementById('f-title').value.trim() || TEMPLATES.find(t=>t.id===selectedTpl).name;
-  const dept = document.getElementById('f-dept').value;
-  const amount = parseFloat(document.getElementById('f-amount').value)||0;
-  const priority = document.getElementById('f-priority').value;
-  const detail = document.getElementById('f-detail').value.trim();
+  if(!selectedTpl || !signState){toast("กรุณาลงนามก่อนส่ง");return;}
+  // ใช้เนื้อหาชุดที่ลงนามไว้ ไม่อ่านจากฟอร์มซ้ำ
+  const f = signState.form;
   const now = new Date();
-  const doc = {
-    id: nextId(), tpl:selectedTpl, title, dept, amount, priority, detail,
-    state:"submitted", signed:true, hash:signState.hash, signedAt:signState.at,
-    routeIdx:0, createdBy:"เจ้าหน้าที่ วิภาดา (คุณ)", mine:true
-  };
+  // ส่งแล้วเข้าสถานะ "กำลังพิจารณา" ทันที เพื่อให้ขึ้นในกล่องรออนุมัติ
+  const doc = Object.assign({id: nextId()}, f, {
+    state:"review", signed:true, hash:signState.hash, signedAt:signState.at,
+    routeIdx:0, createdBy:SIGNER, mine:true
+  });
   documents.unshift(doc);
-  addAudit(doc.id, doc.createdBy, "สร้างเอกสาร (ฉบับร่าง)", dept, new Date(now.getTime()-2000));
-  addAudit(doc.id, doc.createdBy, "ลงลายมือชื่อดิจิทัล", dept, new Date(now.getTime()-1000));
-  addAudit(doc.id, doc.createdBy, "ส่งเข้าระบบเวียนเอกสาร", dept, now);
+  addAudit(doc.id, doc.createdBy, "สร้างเอกสาร (ฉบับร่าง)", f.dept, new Date(now.getTime()-2000));
+  addAudit(doc.id, doc.createdBy, "ลงลายมือชื่อดิจิทัล", f.dept, new Date(now.getTime()-1000));
+  addAudit(doc.id, doc.createdBy, "ส่งเข้าระบบเวียนเอกสาร", f.dept, now);
   // build a simple AI response for new doc
-  const pass = amount < 500000;
+  const withinLimit = f.amount < STP_LIMIT;
+  const verdict = f.tpl!=="purchase" ? 'ไม่ใช่ใบขออนุมัติจัดซื้อ จึงเสนอผู้มีอำนาจพิจารณา'
+    : withinLimit ? 'ต่ำกว่าเกณฑ์ 50,000 บาท เข้าเกณฑ์อนุมัติอัตโนมัติ'
+    : 'เกินเกณฑ์อัตโนมัติ ต้องผ่านการพิจารณาโดยผู้มีอำนาจ';
   setAI(doc.id,[
     {k:"ความครบถ้วนสมบูรณ์ของข้อมูล",pass:true},
     {k:"ความสอดคล้องตามกฎระเบียบ",pass:true},
-    {k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:amount<50000}
-  ], `เอกสาร "${title}" วงเงิน ${amount.toLocaleString()} บาท ${amount<50000?'ต่ำกว่าเกณฑ์ 50,000 บาท เข้าเกณฑ์อนุมัติอัตโนมัติ':'เกินเกณฑ์อัตโนมัติ ต้องผ่านการพิจารณาโดยผู้มีอำนาจ'} ข้อมูลครบถ้วน`);
+    {k:"วงเงินอยู่ในอำนาจอนุมัติ",pass:withinLimit}
+  ], `เอกสาร "${f.title}" วงเงิน ${f.amount.toLocaleString()} บาท ${verdict} ข้อมูลครบถ้วน`);
   // bump originating dept workload
-  const dep = departments.find(x=>x.name===dept); if(dep) dep.workload++;
+  const dep = departments.find(x=>x.name===f.dept); if(dep) dep.workload++;
   toast("📤 ส่งเอกสารเข้าระบบเรียบร้อย");
   resetCreate();
   showPage('mydocs');
 }
 function resetCreate(){
   selectedTpl=null; signState=null;
+  lockForm(false);
   document.querySelectorAll('.tpl').forEach(e=>e.classList.remove('sel'));
   document.getElementById('createForm').style.display='none';
   document.getElementById('f-title').value='';
@@ -613,7 +658,7 @@ function docRow(d){
   return `<div class="doc-row" onclick="openDoc('${d.id}','${curPage()}')">
     <div class="doc-ico">${docIco(d.tpl)}</div>
     <div class="doc-info">
-      <h4>${d.title}</h4>
+      <h4>${esc(d.title)}</h4>
       <p>${d.id} • ${(TEMPLATES.find(t=>t.id===d.tpl)||{}).name} • ${d.amount>0?d.amount.toLocaleString()+' บาท':'—'}</p>
     </div>
     <div class="doc-meta">${stateBadge(d.state)} ${prioBadge(d.priority)}</div>
@@ -664,21 +709,22 @@ function renderDetail(){
   const canAct = isApprover && d.state==="review";
   let html = `
     <span class="back-link" onclick="showPage('${prevPageForDetail}')">← กลับ</span>
-    <h2 class="page-title">${docIco(d.tpl)} ${d.title}</h2>
-    <p class="page-sub">${d.id} • ${t.name} (${t.en}) • สร้างโดย ${d.createdBy}</p>
+    <h2 class="page-title">${docIco(d.tpl)} ${esc(d.title)}</h2>
+    <p class="page-sub">${d.id} • ${t.name} (${t.en}) • สร้างโดย ${esc(d.createdBy)}</p>
 
     <div class="card">
       <div class="meta-grid">
         <div class="mg"><div class="k">สถานะ</div><div class="v">${stateBadge(d.state)}</div></div>
         <div class="mg"><div class="k">ความเร่งด่วน</div><div class="v">${prioBadge(d.priority)}</div></div>
-        <div class="mg"><div class="k">หน่วยงาน</div><div class="v">${d.dept}</div></div>
+        <div class="mg"><div class="k">หน่วยงาน</div><div class="v">${esc(d.dept)}</div></div>
         <div class="mg"><div class="k">วงเงิน</div><div class="v">${d.amount>0?d.amount.toLocaleString()+' บาท':'—'}</div></div>
       </div>
-      <div class="field"><label>รายละเอียด</label><div style="background:var(--grey-light);border-radius:9px;padding:11px 13px;font-size:13.5px">${d.detail||'—'}</div></div>
+      <div class="field"><label>รายละเอียด</label><div style="background:var(--grey-light);border-radius:9px;padding:11px 13px;font-size:13.5px">${esc(d.detail)||'—'}</div></div>
       <div class="sig-box sig-done" style="margin-top:6px">
         <div class="shield">🛡️ ✓ ลงนามดิจิทัลแล้ว</div>
-        <div style="font-size:12px;color:#157a51;margin-top:5px">ผู้ลงนาม: ${d.createdBy} • ${fmt(d.signedAt)}</div>
+        <div style="font-size:12px;color:#157a51;margin-top:5px">ผู้ลงนาม: ${esc(d.createdBy)} • ${fmt(d.signedAt)}</div>
         <div class="sig-hash">${d.hash}</div>
+        <div id="verifyZone" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="verifySig('${d.id}')">🔍 ตรวจสอบว่าเนื้อหาตรงกับที่ลงนาม</button></div>
       </div>
     </div>
 
@@ -704,13 +750,22 @@ function renderDetail(){
   }
 }
 
+// คำนวณ fingerprint จากเนื้อหาปัจจุบันแล้วเทียบกับค่าที่บันทึกตอนลงนาม
+async function verifySig(id){
+  const d = documents.find(x=>x.id===id);
+  const ok = (await sha256(signedContent(d))) === d.hash;
+  const zone = document.getElementById('verifyZone');
+  if(zone) zone.innerHTML = ok
+    ? '<span class="badge b-approved">✓ เนื้อหาตรงกับที่ลงนาม</span>'
+    : '<span class="badge b-rejected">✕ เนื้อหาถูกแก้หลังลงนาม</span>';
+  return ok;
+}
+
 function renderAIPanel(d){
   const zone = document.getElementById('aiZone');
   if(!zone) return;
   const ai = aiResponses[d.id];
-  const allPass = ai.checklist.every(c=>c.pass);
-  const stpEligible = allPass && d.amount>0 && d.amount<50000;
-  const stpNonPurchase = allPass && d.amount<50000; // memos/leave with small/zero amount
+  if(!ai){zone.innerHTML = '<div class="summary-box">ยังไม่มีผลตรวจจาก AI สำหรับเอกสารนี้</div>';return;}
 
   let html = `<div class="ai-panel">
     <div class="ai-head">🤖 ผลการตรวจสอบอัตโนมัติ</div>`;
@@ -723,16 +778,16 @@ function renderAIPanel(d){
   });
   html += `</div>`;
 
-  if(stpEligible || (allPass && d.amount<50000)){
+  if(stpEligible(d)){
     // STP auto-approve path
     html += `<div class="stp-banner"><div class="stp-ico">⚡</div>
       <div><h4>เข้าเกณฑ์อนุมัติอัตโนมัติ (STP)</h4>
-      <p>ทุกรายการผ่านการตรวจสอบ และวงเงินต่ำกว่า 50,000 บาท ระบบสามารถอนุมัติได้ทันทีโดยไม่ต้องผ่านขั้นตอนบุคคล</p></div></div>
-      <div class="summary-box"><span class="sb-label">สรุปโดย AI</span>${ai.summary}</div>
+      <p>ใบขออนุมัติจัดซื้อที่ผ่านการตรวจสอบทุกรายการ และวงเงินต่ำกว่า 50,000 บาท ระบบสามารถอนุมัติได้ทันทีโดยไม่ต้องผ่านขั้นตอนบุคคล</p></div></div>
+      <div class="summary-box"><span class="sb-label">สรุปโดย AI</span>${esc(ai.summary)}</div>
       <button class="btn btn-green" onclick="autoApprove('${d.id}')">⚡ อนุมัติอัตโนมัติ (STP)</button>`;
   } else {
     // manual path with smart summary
-    html += `<div class="summary-box"><span class="sb-label">📄 บทสรุปสำหรับผู้บริหาร (Smart Executive Summary)</span>${ai.summary}</div>
+    html += `<div class="summary-box"><span class="sb-label">📄 บทสรุปสำหรับผู้บริหาร (Smart Executive Summary)</span>${esc(ai.summary)}</div>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button class="btn btn-green" onclick="approveDoc('${d.id}')">✓ อนุมัติ</button>
         <button class="btn btn-red" onclick="rejectDoc('${d.id}')">↩️ ตีกลับ</button>
@@ -743,7 +798,8 @@ function renderAIPanel(d){
 
 function advanceState(d, newState, actor, action){
   d.state = newState;
-  d.routeIdx = ROUTE.length;
+  // ตีกลับ = หยุดที่ขั้นปัจจุบัน ไม่ใช่เดินครบเส้นทาง (timeline จะแสดง ✕ ตรงขั้นนั้น)
+  if(newState!=="rejected") d.routeIdx = ROUTE.length;
   addAudit(d.id, actor, action, d.dept, new Date());
   // reduce workload of dept
   const dep = departments.find(x=>x.name===d.dept); if(dep && dep.workload>0) dep.workload--;
@@ -775,10 +831,10 @@ function renderInbox(){
   if(!pending.length){list.innerHTML=emptyState("ไม่มีเอกสารรออนุมัติ","งานทั้งหมดได้รับการดำเนินการแล้ว 🎉");return;}
   list.innerHTML = `<div style="margin-bottom:12px;font-size:13px;color:var(--grey)">รอดำเนินการ ${pending.length} รายการ • เรียงตามความเร่งด่วน</div>`
     + pending.map(d=>{
-      const stp = aiResponses[d.id] && aiResponses[d.id].checklist.every(c=>c.pass) && d.amount<50000;
+      const stp = stpEligible(d);
       return `<div class="doc-row" onclick="openDoc('${d.id}','inbox')">
         <div class="doc-ico">${docIco(d.tpl)}</div>
-        <div class="doc-info"><h4>${d.title}</h4>
+        <div class="doc-info"><h4>${esc(d.title)}</h4>
           <p>${d.id} • ${d.amount>0?d.amount.toLocaleString()+' บาท':'—'} • หน่วยงาน ${d.dept}</p></div>
         <div class="doc-meta">${prioBadge(d.priority)} ${stp?'<span class="badge b-stp">⚡ เข้าเกณฑ์ STP</span>':stateBadge(d.state)}</div>
       </div>`;
@@ -911,7 +967,7 @@ function renderAudit(){
   const filter = document.getElementById('auditFilter');
   const cur = filter.value;
   const opts = ['<option value="">— ทั้งหมด —</option>']
-    .concat(documents.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(d=>`<option value="${d.id}">${d.id} — ${d.title}</option>`));
+    .concat(documents.slice().sort((a,b)=>a.id.localeCompare(b.id)).map(d=>`<option value="${d.id}">${d.id} — ${esc(d.title)}</option>`));
   filter.innerHTML = opts.join('');
   filter.value = cur;
 
@@ -923,10 +979,10 @@ function renderAudit(){
     const doc = documents.find(d=>d.id===r.docId);
     return `<tr>
       <td style="white-space:nowrap">${fmt(r.when)}</td>
-      <td>${r.docId==="SYSTEM"?'<span class="badge b-stp">ระบบ</span>':`<span style="color:var(--blue);cursor:pointer" onclick="openDoc('${r.docId}','audit')">${r.docId}</span>`}${doc?'<br><span style="font-size:11px;color:var(--grey)">'+doc.title+'</span>':''}</td>
-      <td>${r.actor}</td>
-      <td>${r.action}</td>
-      <td><span class="badge b-normal">${r.dept}</span></td>
+      <td>${r.docId==="SYSTEM"?'<span class="badge b-stp">ระบบ</span>':`<span style="color:var(--blue);cursor:pointer" onclick="openDoc('${r.docId}','audit')">${r.docId}</span>`}${doc?'<br><span style="font-size:11px;color:var(--grey)">'+esc(doc.title)+'</span>':''}</td>
+      <td>${esc(r.actor)}</td>
+      <td>${esc(r.action)}</td>
+      <td><span class="badge b-normal">${esc(r.dept)}</span></td>
     </tr>`;
   }).join('');
 }
